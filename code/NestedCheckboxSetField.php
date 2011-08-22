@@ -42,7 +42,7 @@ class NestedCheckboxSetField extends CheckboxSetField {
 
 	function Field() {
 		Requirements::css(SAPPHIRE_DIR . '/css/CheckboxSetField.css');
-		Requirements::javascript(BASE_URL . 'mysite/javascript/indeterminateCheckboxes.js');
+		Requirements::javascript(MOD_NCBSF_DIR . '/javascript/indeterminateCheckboxes.js');
 		if ($this->source) {
 			$source = $this->source;
 		}
