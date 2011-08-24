@@ -38,7 +38,7 @@
 			} else {
 				el.parents("li").children('input[type="checkbox"]')[propFunc]({
 					indeterminate: true,
-					checked: false
+					checked: true
 				});
 			}
 		}

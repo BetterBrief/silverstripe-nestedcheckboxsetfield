@@ -43,23 +43,70 @@ class NestedCheckboxSetField extends CheckboxSetField {
 	function Field() {
 		Requirements::css(SAPPHIRE_DIR . '/css/CheckboxSetField.css');
 		Requirements::javascript(MOD_NCBSF_DIR . '/javascript/indeterminateCheckboxes.js');
+
 		if ($this->source) {
 			$source = $this->source;
 		}
 		else {
 			$source = DataObject::get($this->className);
 		}
+		$values = $this->value;
+
+		// Get values from the join, if available
+		if(is_object($this->form)) {
+			$record = $this->form->getRecord();
+			if(!$values && $record && $record->hasMethod($this->name)) {
+				$funcName = $this->name;
+				$join = $record->$funcName();
+				if($join) {
+					foreach($join as $joinItem) {
+						$values[] = $joinItem->ID;
+					}
+				}
+			}
+		}
+
+		// Source is not an array
+		if(!is_array($source) && !is_a($source, 'SQLMap')) {
+			if(is_array($values)) {
+				$items = $values;
+			} else {
+				// Source and values are DataObject sets.
+				if($values && is_a($values, 'DataObjectSet')) {
+					foreach($values as $object) {
+						if(is_a($object, 'DataObject')) {
+							$items[] = $object->ID;
+						}
+				   }
+				} elseif($values && is_string($values)) {
+					$items = explode(',', $values);
+					$items = str_replace('{comma}', ',', $items);
+				}
+			}
+		} else {
+			// Sometimes we pass a singluar default value thats ! an array && !DataObjectSet
+			if(is_a($values, 'DataObjectSet') || is_array($values)) {
+				$items = $values;
+			} else {
+				$items = explode(',', $values);
+				$items = str_replace('{comma}', ',', $items);
+			}
+		}
+
+		if(is_array($source)) {
+			unset($source['']);
+		}
 		$options = '';
 		if (!$this->source) {
 			$options = "<li>No options available</li>";
 		}
 		else {
-			$options = $this->buildNestedList($source);
+			$options = $this->buildNestedList($source,$items);
 		}
 		return "<ul id=\"{$this->id()}\" class=\"optionset checkboxsetfield{$this->extraClass()}\">\n$options</ul>\n";
 	}
 
-	function buildNestedList($source) {
+	function buildNestedList($source,$items) {
 		if ($source && $source->exists()) {
 			$odd = 0;
 			$html = '<ul>';
@@ -77,25 +124,10 @@ class NestedCheckboxSetField extends CheckboxSetField {
 				}
 
 				$disabled = ($this->disabled || in_array($key, $this->disabledItems)) ? $disabled = ' disabled="disabled"' : '';
-				$html .= "<li class=\"$extraClass\"><input id=\"$itemID\" name=\"$this->name[$key]\" type=\"checkbox\" value=\"$key\"$checked $disabled class=\"checkbox\" /> <label for=\"$itemID\">$value</label>" . $this->buildNestedList($item->{$this->childFunction}()) . "</li>\n";
+				$html .= "<li class=\"$extraClass\"><input id=\"$itemID\" name=\"$this->name[$key]\" type=\"checkbox\" value=\"$key\"$checked $disabled class=\"checkbox\" /> <label for=\"$itemID\">$value</label>" . $this->buildNestedList($item->{$this->childFunction}(),$items) . "</li>\n";
 			}
 			return $html . '</ul>';
 		}
-	}
-
-	function makeLevel($source) {
-		if (!$source || !is_array($source)) {
-			return;
-		}
-		$level = '';
-		foreach ($source as $val => $label) {
-			if (is_string($label)) {
-			}
-			else {
-				$level .= $this->makeLevel($source);
-			}
-		}
-		return $level;
 	}
 
 }
